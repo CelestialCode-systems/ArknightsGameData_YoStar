@@ -4,12 +4,14 @@ const fs = require('fs');
 const filePathCN = '../ArknightsGameData/zh_CN/gamedata/excel/character_table.json';
 const filePathEN = './en_US/gamedata/excel/character_table.json';
 const filePathJP = './ja_JP/gamedata/excel/character_table.json';
+const profileInfoPath = '../ArknightsGameData/zh_CN/gamedata/excel/handbook_info_table.json';
 const gameDataFilePath = '../game-toolbox/src/components/Games/Arknights/Content/Json/charData.json';
 
 // Read and parse the JSON file
 const characterDataCN = JSON.parse(fs.readFileSync(filePathCN, 'utf8'));
 const characterDataEN = JSON.parse(fs.readFileSync(filePathEN, 'utf8'));
 const characterDataJP = JSON.parse(fs.readFileSync(filePathJP, 'utf8'));
+const profileData = JSON.parse(fs.readFileSync(profileInfoPath, 'utf8'));
 const gameData = JSON.parse(fs.readFileSync(gameDataFilePath, 'utf8'));
 
 let jsonData = []
@@ -24,17 +26,46 @@ Object.keys(characterDataEN).map(key => {
     if (key.startsWith("trap") || key.startsWith("token") || charCN.isNotObtainable == true || charCN.subProfessionId.startsWith("notchar")) { 
 
     } else {
+        let gender = getGender(key);
         jsonData.push({
             id: key,
+
             name: charCN.name,
             nameEn: charEN.name,
             nameJP: charJP ? charJP.name : '',
+
+            genderCN: gender,
+            genderEn: getGenderEN(gender),
+            genderJP: getGenderJP(gender),
+
+            tagline: charEN.itemUsage + ' ' + charEN.itemDesc,
+
             rarity: charCN.rarity[5],
+
             class: getClass(charCN),
             classEn: getClassEN(charCN),
+
             subclassEN: getSubClassEN(charCN),
-            talent1EN: charEN.talents,
+
+            
             tagListEN: charEN.tagList,
+
+            phases: charCN.phases,
+            skills: charCN.skills,
+
+            talentsCN: charCN.talents,
+            talentsEN: charEN.talents,
+            talentsJP: charJP.talents,
+
+            potentialCN: charCN.potentialRanks,
+            potentialEN: charEN.potentialRanks,
+            potentialJP: charJP.potentialRanks,
+
+            traitCN: charCN.description,
+            traitEN: charEN.description,
+            traitJP: charJP.description,
+
+            skillLvlup7: charCN.allSkillLvlup,
         })
     }
 });
@@ -52,6 +83,7 @@ function getClass(currChara){
         default : return "";
     }
 }
+
 function getClassEN(chara){
     switch(chara.profession){
         case ("WARRIOR"): return "Guard";
@@ -65,6 +97,7 @@ function getClassEN(chara){
         default : return "";
     }
 }
+
 function getSubClassEN(chara){
     switch(chara.subProfessionId){
         //Medics 6 total
@@ -145,6 +178,43 @@ function getSubClassEN(chara){
     }
 }
 
+function getGender(name){
+    var charInfo = profileData.handbookDict[name]
+    if(charInfo){
+        var currinfo = charInfo.storyTextAudio[0].stories[0].storyText.split("\n")[1].split("【性别】")[1]
+        return currinfo
+    }
+    return null
+}
+
+function getGenderEN(gender){
+    if (typeof gender === 'string') {
+        const trimmedGender = gender.trim();
+
+        switch(trimmedGender) {
+            case "男": return "Male";
+            case "女": return "Female";
+            default: return "Unknown";
+        }
+    } else {
+        return "Unknown";
+    }
+}
+
+function getGenderJP(gender){
+    if (typeof gender === 'string') {
+        const trimmedGender = gender.trim();
+
+        switch(trimmedGender){
+            case ("男"): return "男";
+            case ("女"): return "女性";
+            default: return "Unknown"; 
+        }
+    } else {
+        return "Unknown";
+    }
+}
+
 jsonData.sort((a, b) => {
     return parseInt(b.rarity) - parseInt(a.rarity);
 });
@@ -152,7 +222,11 @@ jsonData.sort((a, b) => {
 jsonData.forEach(item => {
     gameData.push(item)
 });
-console.log(gameData)
-fs.writeFile(`../game-toolbox/src/components/Games/Arknights/Content/Json/charData.json`, JSON.stringify(gameData, null, '\t'), function (err) {
-    console.log(err);
+
+fs.writeFile(`../game-toolbox/src/components/Games/Arknights/Content/Json/charData.json`, JSON.stringify(gameData, null, '\t'), (err) => {
+    if (err) {
+        console.error('Error writing file in charDataScript:', err);
+    } else {
+        console.log('Successfully wrote data to file in charDataScript.');
+    }
 })
